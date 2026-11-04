@@ -1,0 +1,1 @@
+var e=1/0;function t(t,n=e){return String(t??``).trim().slice(0,n)}function n(t,n=e){return String(t||``).trim().slice(0,n)}function r(e){return String(e).replace(/[.*+?^${}()|[\]\\]/g,`\\$&`)}export{n,t as r,r as t};

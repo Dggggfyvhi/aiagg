@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="OnMe AI 无限画布">
+  <defs><linearGradient id="bg" x1="28" y1="20" x2="226" y2="238" gradientUnits="userSpaceOnUse"><stop stop-color="#8467ff"/><stop offset=".52" stop-color="#563ed2"/><stop offset="1" stop-color="#19bfb1"/></linearGradient><linearGradient id="line" x1="51" y1="55" x2="211" y2="198" gradientUnits="userSpaceOnUse"><stop stop-color="#fff"/><stop offset="1" stop-color="#9ff8eb"/></linearGradient><filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-opacity=".25"/></filter></defs>
+  <rect x="10" y="10" width="236" height="236" rx="62" fill="url(#bg)"/>
+  <path d="M31 93h194M31 139h194M77 31v194M132 31v194M185 31v194" stroke="#fff" stroke-opacity=".08" stroke-width="2"/>
+  <g fill="none" stroke="url(#line)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)"><path d="M60 170C84 170 87 88 116 88s31 71 61 71c13 0 20-10 20-23"/><path d="M188 75c0 15-12 27-27 27s-27-12-27-27 12-27 27-27 27 12 27 27Z"/></g>
+  <g fill="#fff" stroke="#4f38bd" stroke-width="5" filter="url(#shadow)"><rect x="42" y="148" width="39" height="39" rx="12"/><rect x="99" y="70" width="39" height="39" rx="12"/><rect x="177" y="116" width="39" height="39" rx="12"/></g>
+  <path d="m156 66 5-11 5 11 11 5-11 5-5 11-5-11-11-5 11-5Z" fill="#fff"/>
+</svg>

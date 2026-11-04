@@ -1,0 +1,1 @@
+import{v as e}from"./reactivity.esm-bundler-wyt5-nGh.js";import{Y as t,c as n}from"./runtime-core.esm-bundler-qf7WJo-w.js";function r(r){let i=e(!1),a=n(()=>(r()||[]).filter(e=>e.status===`paid`).length),o=n(()=>{let e=0;return(r()||[]).filter(t=>t.status!==`paid`||i.value||++e<=3)});return t(r,()=>{i.value=!1}),{rows:o,paidCount:a,expanded:i}}export{r as t};

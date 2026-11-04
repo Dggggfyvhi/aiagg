@@ -1,0 +1,1 @@
+var e=new WeakMap,t=0;function n(n){return!n||typeof n==`string`?`selector:${n||``}`:(e.has(n)||e.set(n,`element:${++t}`),e.get(n))}export{n as t};

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="一站式 AI 模型与智能体创作平台" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#09090b" />
+    <title>沫白公益站</title>
+    <script>
+      /* ===================================================================
+       *  Nexora 内联拦截 —— 唯一改动，写在 index.html 里，不依赖任何外部文件
+       *  作用：点「开始使用 / 开始创作」时跳转到 login.html，
+       *        而不是进入原版那个需要后端、会报「模型列表加载失败」的控制台。
+       *  安全：不联网、不上传、不 eval，只做本地跳转。
+       * =================================================================== */
+      (function () {
+        'use strict';
+        console.log('[Nexora] 内联拦截已加载');
+
+        var TARGET = 'login.html';                  // ← 想换页面改这里
+        var KEYS = ['开始使用', '开始创作', '立即开始', '马上开始', '立即体验', 'get started', 'start now'];
+        var DEAD = ['模型列表加载失败', '参与模型'];  // 死壳特征词，出现就自动逃生
+
+        var last = 0;   // 只做 0.8 秒防连点，绝不永久锁死
+
+        function go(reason) {
+          var now = Date.now();
+          if (now - last < 800) return;
+          last = now;
+          console.log('[Nexora] 跳转：' + reason);
+          location.href = TARGET;
+        }
+
+        function match(el) {
+          if (!el || el.nodeType !== 1) return false;
+          var t = (el.textContent || '').trim().toLowerCase();
+          for (var i = 0; i < KEYS.length; i++) {
+            if (t.indexOf(KEYS[i]) !== -1) return true;
+          }
+          return false;
+        }
+
+        function scan() {
+          var t = (document.body && document.body.innerText) || '';
+          for (var i = 0; i < DEAD.length; i++) {
+            if (t.indexOf(DEAD[i]) !== -1) { go('检测到死壳：' + DEAD[i]); return; }
+          }
+        }
+
+        /* 点击拦截：捕获阶段，抢在原版框架之前 */
+        document.addEventListener('click', function (e) {
+          var el = e.target;
+          for (var i = 0; i < 10 && el; i++) {
+            if (match(el)) {
+              if (e.cancelable) e.preventDefault();
+              e.stopPropagation();
+              if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+              go('点击按钮');
+              return;
+            }
+            el = el.parentElement;
+          }
+        }, true);
+
+        function watch() {
+          scan();
+          new MutationObserver(scan).observe(document.body, { childList: true, subtree: true, characterData: true });
+          setInterval(scan, 400);
+        }
+        if (document.body) watch();
+        else document.addEventListener('DOMContentLoaded', watch);
+
+        /* 关键修复：从返回缓存恢复（刷新/返回/退出再回来）时解锁，按钮立刻恢复可用 */
+        window.addEventListener('pageshow', function (e) {
+          last = 0;
+          console.log('[Nexora] 页面恢复，已解锁（persisted=' + e.persisted + '）');
+        });
+      })();
+    </script>
+    <script src="theme-boot.js"></script>
+    <style>
+      .app-boot-shell { position: fixed; inset: 0; display: grid; place-content: center; gap: 14px; padding: 24px; color: #e4e4e7; background: #09090b; text-align: center; font: 15px/1.6 system-ui, sans-serif; }
+      .app-boot-shell strong { font-size: 22px; }
+      .app-boot-shell p { margin: 0; color: #a1a1aa; }
+      .app-boot-shell button { justify-self: center; padding: 10px 22px; border: 1px solid #52525b; border-radius: 12px; background: #27272a; color: inherit; font: inherit; cursor: pointer; }
+      .app-boot-shell button[hidden] { display: none; }
+      html[data-theme="light"] .app-boot-shell { color: #18181b; background: #fafafa; }
+      html[data-theme="light"] .app-boot-shell p { color: #52525b; }
+      html[data-theme="light"] .app-boot-shell button { background: #fff; border-color: #d4d4d8; }
+      html.admin-boot-route .app-boot-shell { display: none; }
+      .admin-boot-shell { display: none; }
+      html.admin-boot-route,
+      html.admin-boot-route body,
+      html.admin-boot-route #app {
+        min-height: 100%;
+        margin: 0;
+        background: #060914;
+      }
+      html[data-theme="light"].admin-boot-route,
+      html[data-theme="light"].admin-boot-route body,
+      html[data-theme="light"].admin-boot-route #app {
+        background: #f5f7fb;
+      }
+      html.admin-boot-route .admin-boot-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: grid;
+        grid-template-columns: 264px minmax(0, 1fr);
+        min-height: 100vh;
+        overflow: hidden;
+        color: #e5edf9;
+        background:
+          radial-gradient(900px 520px at 88% -18%, rgba(34, 211, 238, .09), transparent 64%),
+          #060914;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      html[data-theme="light"].admin-boot-route .admin-boot-shell {
+        color: #171923;
+        background:
+          radial-gradient(900px 520px at 88% -18%, rgba(59, 130, 246, .08), transparent 64%),
+          #f5f7fb;
+      }
+      .admin-boot-side {
+        padding: 24px 18px;
+        border-right: 1px solid rgba(148, 163, 184, .1);
+        background: linear-gradient(180deg, rgba(8, 12, 22, .99), rgba(5, 8, 15, .99));
+      }
+      html[data-theme="light"].admin-boot-route .admin-boot-side {
+        border-right-color: rgba(23, 25, 35, .09);
+        background: linear-gradient(180deg, #fff, #f0f2f7);
+      }
+      .admin-boot-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 46px; }
+      .admin-boot-logo {
+        display: grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        border-radius: 13px;
+        color: #04101f;
+        background: linear-gradient(145deg, #22d3ee, #3b82f6);
+        box-shadow: 0 12px 32px rgba(34, 211, 238, .18);
+        font-size: 22px;
+      }
+      .admin-boot-brand strong { display: block; font-size: 16px; letter-spacing: .02em; }
+      .admin-boot-brand small { display: block; margin-top: 2px; color: #64748b; font-size: 10px; letter-spacing: .18em; }
+      .admin-boot-nav { display: grid; gap: 13px; }
+      .admin-boot-line,
+      .admin-boot-card,
+      .admin-boot-panel,
+      .admin-boot-title {
+        position: relative;
+        overflow: hidden;
+        background: rgba(30, 41, 59, .62);
+      }
+      html[data-theme="light"].admin-boot-route :is(
+        .admin-boot-line,
+        .admin-boot-card,
+        .admin-boot-panel,
+        .admin-boot-title
+      ) {
+        background: rgba(203, 213, 225, .62);
+      }
+      .admin-boot-line::after,
+      .admin-boot-card::after,
+      .admin-boot-panel::after,
+      .admin-boot-title::after {
+        position: absolute;
+        inset: 0;
+        content: "";
+        transform: translateX(-100%);
+        background: linear-gradient(90deg, transparent, rgba(125, 211, 252, .09), transparent);
+        animation: admin-boot-shimmer 1.25s ease-in-out infinite;
+      }
+      html[data-theme="light"].admin-boot-route :is(
+        .admin-boot-line,
+        .admin-boot-card,
+        .admin-boot-panel,
+        .admin-boot-title
+      )::after {
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .68), transparent);
+      }
+      .admin-boot-line { width: 78%; height: 38px; border-radius: 10px; }
+      .admin-boot-line:nth-child(2) { width: 92%; }
+      .admin-boot-line:nth-child(3) { width: 68%; }
+      .admin-boot-main { min-width: 0; }
+      .admin-boot-topbar {
+        height: 70px;
+        border-bottom: 1px solid rgba(148, 163, 184, .1);
+        background: rgba(8, 12, 22, .82);
+      }
+      html[data-theme="light"].admin-boot-route .admin-boot-topbar {
+        border-bottom-color: rgba(23, 25, 35, .08);
+        background: rgba(255, 255, 255, .82);
+      }
+      .admin-boot-content { padding: 38px 32px; }
+      .admin-boot-eyebrow { margin: 0 0 8px; color: #22d3ee; font-size: 11px; letter-spacing: .2em; }
+      html[data-theme="light"].admin-boot-route .admin-boot-eyebrow { color: #0e7490; }
+      .admin-boot-heading { margin: 0 0 28px; font-size: 30px; line-height: 1.2; }
+      .admin-boot-title { width: 230px; height: 12px; margin-bottom: 24px; border-radius: 999px; }
+      .admin-boot-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+      .admin-boot-card { height: 96px; border: 1px solid rgba(148, 163, 184, .1); border-radius: 14px; }
+      .admin-boot-panel { height: 270px; margin-top: 18px; border: 1px solid rgba(148, 163, 184, .1); border-radius: 16px; }
+      @keyframes admin-boot-shimmer { 60%, 100% { transform: translateX(100%); } }
+      @media (max-width: 820px) {
+        html.admin-boot-route .admin-boot-shell { grid-template-columns: 76px minmax(0, 1fr); }
+        .admin-boot-side { padding: 18px 12px; }
+        .admin-boot-brand { justify-content: center; }
+        .admin-boot-brand div, .admin-boot-nav { display: none; }
+        .admin-boot-content { padding: 28px 18px; }
+        .admin-boot-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .admin-boot-line::after,
+        .admin-boot-card::after,
+        .admin-boot-panel::after,
+        .admin-boot-title::after { animation: none; }
+      }
+    </style>
+    <script defer src="admin-boot.js"></script>
+    <script defer src="app-boot.js"></script>
+    <script type="module" crossorigin src="assets/index-CH3ZgW01.js"></script>
+    <link rel="modulepreload" crossorigin href="assets/reactivity.esm-bundler-wyt5-nGh.js">
+    <link rel="modulepreload" crossorigin href="assets/runtime-core.esm-bundler-qf7WJo-w.js">
+    <link rel="modulepreload" crossorigin href="assets/runtime-dom.esm-bundler-etT7BFmD.js">
+    <link rel="modulepreload" crossorigin href="assets/text-CXINL7dK.js">
+    <link rel="modulepreload" crossorigin href="assets/displayPricingState-Cqbdb6bZ.js">
+    <link rel="modulepreload" crossorigin href="assets/coerce-plg_UksR.js">
+    <link rel="modulepreload" crossorigin href="assets/locale-LLBsHPJc.js">
+    <link rel="modulepreload" crossorigin href="assets/requestLocale-o017Zf9J.js">
+    <link rel="modulepreload" crossorigin href="assets/buildEnvironment-wwq8erJF.js">
+    <link rel="modulepreload" crossorigin href="assets/mediaUrls-kyTD7FkY.js">
+    <link rel="modulepreload" crossorigin href="assets/preload-helper-Czpn1I53.js">
+    <link rel="modulepreload" crossorigin href="assets/api-B06T09dq.js">
+    <link rel="modulepreload" crossorigin href="assets/referralPromotion-DSQNoTjt.js">
+    <link rel="modulepreload" crossorigin href="assets/utils-B6Ewo97z.js">
+    <link rel="modulepreload" crossorigin href="assets/theme-Dv4Cw0I6.js">
+    <link rel="modulepreload" crossorigin href="assets/store-DJwETYKY.js">
+    <link rel="modulepreload" crossorigin href="assets/location-0ZyA6k5y.js">
+    <link rel="modulepreload" crossorigin href="assets/desktopHandoff-BWppUw-w.js">
+    <link rel="modulepreload" crossorigin href="assets/_plugin-vue_export-helper-BDNMzG2s.js">
+    <link rel="modulepreload" crossorigin href="assets/lazyModuleContract-CKwSe1yE.js">
+    <link rel="modulepreload" crossorigin href="assets/asyncView-DpcHcGiZ.js">
+    <link rel="modulepreload" crossorigin href="assets/worksViewContract-DbC0mKIS.js">
+    <link rel="modulepreload" crossorigin href="assets/viewContracts-KHmxJMyf.js">
+    <link rel="modulepreload" crossorigin href="assets/browserHistory-BGGCTfBc.js">
+    <link rel="modulepreload" crossorigin href="assets/workspaceHistorySync-B4nKiaIX.js">
+    <link rel="modulepreload" crossorigin href="assets/mediaDownload-DvqExObB.js">
+    <link rel="modulepreload" crossorigin href="assets/customerPetActivity-dolXmUN6.js">
+    <link rel="modulepreload" crossorigin href="assets/Icon-Cx5HQsIP.js">
+    <link rel="modulepreload" crossorigin href="assets/AssetLibraryArt-Bg7XZMGq.js">
+    <link rel="modulepreload" crossorigin href="assets/assetLibraryRules-DZJpL5BU.js">
+    <link rel="modulepreload" crossorigin href="assets/assetLibraryState-COjLXYpd.js">
+    <link rel="modulepreload" crossorigin href="assets/storageNotice-fa53RdaU.js">
+    <link rel="modulepreload" crossorigin href="assets/i18n-IC8FjK4z.js">
+    <link rel="modulepreload" crossorigin href="assets/consoleEmbed-xJ3yhnY6.js">
+    <link rel="stylesheet" crossorigin href="assets/asyncView-B_xnPReZ.css">
+    <link rel="stylesheet" crossorigin href="assets/AssetLibraryArt-BURyMpGk.css">
+    <link rel="stylesheet" crossorigin href="assets/index-CuXICYw8.css">
+    <link rel="stylesheet" crossorigin href="assets/assetLibraryEntry-CHuytiv9.css">
+  </head>
+  <body>
+    <div id="app">
+      <section class="app-boot-shell" aria-label="正在打开工作台" aria-busy="true">
+        <strong>正在启动中~</strong>
+        <p data-boot-message role="status">首次加载可能需要几秒，请稍候。</p>
+        <button data-boot-retry type="button" hidden>重新加载</button>
+        <noscript>请在浏览器中启用 JavaScript 后刷新页面。</noscript>
+      </section>
+      <section class="admin-boot-shell" aria-label="管理后台" aria-busy="true">
+        <aside class="admin-boot-side">
+          <div class="admin-boot-brand">
+            <span class="admin-boot-logo">✦</span>
+            <div><strong>管理控制台</strong><small>WUKONG AI CONSOLE</small></div>
+          </div>
+          <div class="admin-boot-nav" aria-hidden="true">
+            <span class="admin-boot-line"></span><span class="admin-boot-line"></span><span class="admin-boot-line"></span>
+          </div>
+        </aside>
+        <main class="admin-boot-main">
+          <div class="admin-boot-topbar"></div>
+          <div class="admin-boot-content">
+            <p class="admin-boot-eyebrow">OPERATIONS COCKPIT</p>
+            <h1 class="admin-boot-heading">管理后台</h1>
+            <div class="admin-boot-title" aria-hidden="true"></div>
+            <div class="admin-boot-cards" aria-hidden="true">
+              <div class="admin-boot-card"></div><div class="admin-boot-card"></div><div class="admin-boot-card"></div><div class="admin-boot-card"></div>
+            </div>
+            <div class="admin-boot-panel" aria-hidden="true"></div>
+          </div>
+        </main>
+      </section>
+    </div>
+  </body>
+</html>

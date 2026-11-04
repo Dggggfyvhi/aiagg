@@ -1,0 +1,1 @@
+function e(){return new Date().toISOString()}var t=480*60*1e3;function n(e=Date.now()){let n=e instanceof Date?e.getTime():Number(e);return new Date(n+t).toISOString().slice(0,10)}export{e as n,n as r,t};

@@ -1,0 +1,1 @@
+var e=`/agent-icons/product-video.svg`;export{e as t};

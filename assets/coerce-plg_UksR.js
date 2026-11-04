@@ -1,0 +1,1 @@
+function e(e){return Array.isArray(e)?e:[]}function t(e,t,n){return Math.min(n,Math.max(t,e))}export{e as n,t};

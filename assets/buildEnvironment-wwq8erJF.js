@@ -1,0 +1,1 @@
+var e={BASE_URL:`/`,DEV:!1,MODE:`production`,PROD:!0,SSR:!1},t=String(e.VITE_PUBLIC_RESOURCE_BASE??e.BASE_URL??`/`).replace(/\/+$/,``),n=Object.freeze({assetBasePath:t,development:e.DEV===!0,nativeApp:e.VITE_NATIVE_APP===!0});function r(e,t=globalThis.location){return n.development?new URLSearchParams(t?.search||``).get(`landing`)===String(e||``):!1}export{r as n,n as t};

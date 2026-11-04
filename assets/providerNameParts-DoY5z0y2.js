@@ -1,0 +1,1 @@
+function e(e){let t=String(e||``).trim(),[n,...r]=t.split(/\s*[|｜]\s*/),i=r.filter(Boolean).join(` | `);return n&&i?{head:n,detail:i}:{head:t,detail:``}}export{e as t};

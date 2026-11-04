@@ -1,0 +1,1 @@
+import{o as e}from"./storageNotice-fa53RdaU.js";function t(t){let n=t.removed?.length||0,r=t.blocked?.length||0,i=t.failed?.length||0,a=[];return n&&a.push(`已删除 ${n} 项，释放 ${e(t.releasedBytes)}`),r&&a.push(`${r} 项正在使用，已保留，请先解除项目或任务引用`),i&&a.push(`${i} 项删除未完成，请重试`),{message:a.join(`；`),type:r||i?`error`:`success`}}export{t};

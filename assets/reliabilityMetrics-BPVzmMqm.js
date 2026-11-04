@@ -1,0 +1,1 @@
+var e=`independent_tasks_v1`,t=Object.freeze({violation:`违规`,param_error:`参数错误`,insufficient_credits:`算力不足`,service_error:`服务异常`,unknown:`未知`});export{e as n,t};
