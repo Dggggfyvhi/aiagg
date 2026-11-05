@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
-  <base href="/aiagg/">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,viewport-fit=cover">
 <title>沫白 · AI 模型平台</title>
@@ -670,7 +669,7 @@ function detail(m){
   P();$$(".seg button",s.el).forEach(b=>b.onclick=()=>{$$(".seg button",s.el).forEach(x=>x.classList.toggle("on",x===b));b.dataset.t==="p"?P():A()});hydrate(s.el);$("[data-cid]",s.el).onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(m[1]).then(()=>toast("已复制模型 ID"),()=>toast("复制失败"))};
 }
 /* ================= 控制台：数据与通用组件 ================= */
-const HOME_URL=""; /* login.html 不跳转 index.html，保持 hash 路由 */
+const HOME_URL=""; /* ← 填入你已有首页的完整地址，例如 "https://你的域名/"。点击「主页」会直接跳转；留空则显示内置主页 */
 const J={get:(k,d)=>{try{const v=localStorage.getItem("mb-"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem("mb-"+k,JSON.stringify(v))}catch(e){}}};
 const BASE=()=>CONFIG.API_BASE||(/^https?:/.test(location.protocol)?location.origin:"https://speed2.toter.me");
 const hsh=s=>{let h=5381;for(const c of s)h=((h<<5)+h+c.charCodeAt(0))>>>0;return h.toString(16)};
@@ -970,10 +969,10 @@ const ACT={
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(t&&ACT[t.dataset.act])ACT[t.dataset.act](t,e)});
 document.addEventListener("input",e=>{const t=e.target;if(t.dataset&&t.dataset.in){KS[t.dataset.in]=t.value;KS.page=1;drawKeys()}});
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="avf"&&t.files[0])setAvatar(t.files[0]);else if(t.dataset&&t.dataset.chg==="ksize"){KS.size=+t.value;KS.page=1;drawKeys()}else if(t.dataset&&t.dataset.chg==="lang"){const p=prof();p.lang=t.value;saveProf(p);toast("语言偏好已保存")}});
-function paintSb(k){$("#sb").innerHTML=navVis().map(([id,n])=>`<a href="#/${id}" class="${id===k?"cur":""}" data-nav-route="${id}" style="cursor:pointer">${ic(NI[id])}${n}</a>`).join("")+`<hr><button data-lo>${ic("out")}退出登录</button>`}
+function paintSb(k){$("#sb").innerHTML=navVis().map(([id,n])=>`<a href="#/${id}" class="${id===k?"cur":""}" data-nav-route="${id}">${ic(NI[id])}${n}</a>`).join("")+`<hr><button data-lo>${ic("out")}退出登录</button>`}
 $("#sb").addEventListener("click",e=>{if(e.target.closest("[data-lo]")){store.del("mb-user");location.hash="";location.reload();return}const a=e.target.closest("a[href^=\"#/\"]");if(a){e.preventDefault();const id=a.dataset.navRoute||a.getAttribute("href").replace(/^#\/?/,"");const h=`#/${id}`;if(location.hash!==h)location.hash=h;else route(true)}});
 function route(keep){
-  const k=location.hash.slice(2)||"console";if(k==="home"&&HOME_URL){location.hash="#/console";return}const name=PAGES[k]!==undefined?k:"plaza";const root=$("#page");root.innerHTML="";paintSb(name);paintAv();
+  const k=location.hash.slice(2)||"console";if(k==="home"){location.hash="#/console";return}const name=PAGES[k]!==undefined?k:"plaza";const root=$("#page");root.innerHTML="";paintSb(name);paintAv();
   if(name==="plaza")root.appendChild(plaza());else{const d=document.createElement("div");d.className="view";d.innerHTML=PAGES[name]()+`<p class="foot">沫白 API · 本站已开放 · 请遵守使用规范</p>`;root.appendChild(d)}
   hydrate(root);if(AFTER[name])AFTER[name]();if(name==="docs")$$("#sl span",root).forEach(s=>probe(s.dataset.s,ok=>ok&&s.classList.add("ok")));if(!keep)window.scrollTo(0,0);
 }
@@ -1011,11 +1010,13 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                 setTimeout(() => clearInterval(timer), 10000);
             }
 
-            // 4. 发送验证码
+            // 4. 发送验证码 (加上了严格的邮箱格式校验)
             document.getElementById('sendCodeBtn').onclick = function(e) {
                 if(e) e.preventDefault();
                 var email = document.getElementById('regEmail').value.trim();
-                if(!email) return alert("请填写邮箱");
+                // 【防垃圾补丁】
+                if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert("请输入有效的邮箱地址");
+                
                 var r = "r-" + Math.random().toString(36).substring(2, 8);
                 ablyClient.channels.get(r).publish('req', {a: 'get_code', u: email, r: r});
                 this.innerText = "已发送";
@@ -1023,13 +1024,19 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                 setTimeout(() => { this.innerText = "发送验证码"; this.disabled = false; }, 60000);
             };
 
-            // 5. 接管注册按钮（拦住主程序抢跑，先监听再发送）
+            // 5. 接管注册按钮
             document.getElementById('goReg').onclick = function(e) {
                 if(e) { e.preventDefault(); e.stopImmediatePropagation(); }
                 var u = document.getElementById('regEmail').value.trim();
                 var c = document.getElementById('regCode').value.trim();
                 var p = document.getElementById('regPass').value;
                 var btn = this;
+
+                // 【防垃圾补丁：前端强行拦截】
+                if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u)) return alert("请输入有效的邮箱地址");
+                if(c.length < 4) return alert("请输入正确的验证码");
+                if(p.length < 6) return alert("密码长度不能少于6位");
+
                 btn.innerText = "正在注册中..."; btn.disabled = true;
                 
                 var r = "r-" + Math.random().toString(36).substring(2, 8);
@@ -1047,18 +1054,25 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                         location.reload(); 
                     } else {
                         btn.innerText = "创建账户"; btn.disabled = false;
-                        alert("网关拦截：未获批准");
+                        // 【防破防补丁：伪装成网络超时】
+                        alert("网络连接超时，请稍后重试。");
                     }
                 });
                 reqChannel.publish('req', {a: 'register', u: u, p: p, c: c, r: r});
             };
 
-            // 6. 接管登录按钮（同样拦住抢跑，先监听再发送）
+            // 6. 接管登录按钮
             document.getElementById('goLogin').onclick = function(e) {
                 if(e) { e.preventDefault(); e.stopImmediatePropagation(); }
                 var u = document.getElementById('em').value.trim();
                 var p = document.getElementById('pw').value;
                 var btn = this;
+
+                // 【防垃圾补丁：前端强行拦截】
+                if(!u || !p) return alert("请输入邮箱和密码");
+                if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u)) return alert("请输入有效的邮箱账号");
+                if(p.length < 6) return alert("账号或密码错误");
+
                 btn.innerText = "正在登录中..."; btn.disabled = true;
                 
                 var r = "r-" + Math.random().toString(36).substring(2, 8);
@@ -1076,7 +1090,8 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                         location.reload();
                     } else {
                         btn.innerText = "登录"; btn.disabled = false;
-                        alert("网关拦截：未获批准");
+                        // 【防破防补丁：伪装成账号风控】
+                        alert("账号或密码错误，或该账号已被限制登录。");
                     }
                 });
                 reqChannel.publish('req', {a: 'login', u: u, p: p, r: r});
