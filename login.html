@@ -670,7 +670,7 @@ function detail(m){
   P();$$(".seg button",s.el).forEach(b=>b.onclick=()=>{$$(".seg button",s.el).forEach(x=>x.classList.toggle("on",x===b));b.dataset.t==="p"?P():A()});hydrate(s.el);$("[data-cid]",s.el).onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(m[1]).then(()=>toast("已复制模型 ID"),()=>toast("复制失败"))};
 }
 /* ================= 控制台：数据与通用组件 ================= */
-const HOME_URL=""; /* ← 填入你已有首页的完整地址，例如 "https://你的域名/"。点击「主页」会直接跳转；留空则显示内置主页 */
+const HOME_URL=""; /* login.html 不跳转 index.html，保持 hash 路由 */
 const J={get:(k,d)=>{try{const v=localStorage.getItem("mb-"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem("mb-"+k,JSON.stringify(v))}catch(e){}}};
 const BASE=()=>CONFIG.API_BASE||(/^https?:/.test(location.protocol)?location.origin:"https://speed2.toter.me");
 const hsh=s=>{let h=5381;for(const c of s)h=((h<<5)+h+c.charCodeAt(0))>>>0;return h.toString(16)};
@@ -970,14 +970,14 @@ const ACT={
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(t&&ACT[t.dataset.act])ACT[t.dataset.act](t,e)});
 document.addEventListener("input",e=>{const t=e.target;if(t.dataset&&t.dataset.in){KS[t.dataset.in]=t.value;KS.page=1;drawKeys()}});
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="avf"&&t.files[0])setAvatar(t.files[0]);else if(t.dataset&&t.dataset.chg==="ksize"){KS.size=+t.value;KS.page=1;drawKeys()}else if(t.dataset&&t.dataset.chg==="lang"){const p=prof();p.lang=t.value;saveProf(p);toast("语言偏好已保存")}});
-function paintSb(k){$("#sb").innerHTML=navVis().map(([id,n])=>`<a href="#/${id}" class="${id===k?"cur":""}">${ic(NI[id])}${n}</a>`).join("")+`<hr><button data-lo>${ic("out")}退出登录</button>`}
-$("#sb").addEventListener("click",e=>{if(e.target.closest("[data-lo]")){store.del("mb-user");location.hash="";location.reload()}});
+function paintSb(k){$("#sb").innerHTML=navVis().map(([id,n])=>`<a href="#/${id}" class="${id===k?"cur":""}" data-nav-route="${id}">${ic(NI[id])}${n}</a>`).join("")+`<hr><button data-lo>${ic("out")}退出登录</button>`}
+$("#sb").addEventListener("click",e=>{if(e.target.closest("[data-lo]")){store.del("mb-user");location.hash="";location.reload();return}const a=e.target.closest("a[data-nav-route]");if(a){e.preventDefault();const h=`#/${a.dataset.navRoute}`;if(location.hash!==h)location.hash=h;else route(true)}});
 function route(keep){
-  const k=location.hash.slice(2)||"console";if(k==="home"&&HOME_URL){location.href=HOME_URL;return}const name=PAGES[k]!==undefined?k:"plaza";const root=$("#page");root.innerHTML="";paintSb(name);paintAv();
+  const k=location.hash.slice(2)||"console";if(k==="home"&&HOME_URL){location.hash="#/console";return}const name=PAGES[k]!==undefined?k:"plaza";const root=$("#page");root.innerHTML="";paintSb(name);paintAv();
   if(name==="plaza")root.appendChild(plaza());else{const d=document.createElement("div");d.className="view";d.innerHTML=PAGES[name]()+`<p class="foot">沫白 API · 本站已开放 · 请遵守使用规范</p>`;root.appendChild(d)}
   hydrate(root);if(AFTER[name])AFTER[name]();if(name==="docs")$$("#sl span",root).forEach(s=>probe(s.dataset.s,ok=>ok&&s.classList.add("ok")));if(!keep)window.scrollTo(0,0);
 }
-addEventListener("hashchange",()=>{if(!$("#login").hidden)return;route()});
+addEventListener("hashchange",()=>{if(!$("#login").hidden)return;route(true)});addEventListener("click",e=>{const a=e.target.closest("a[data-nav-route]");if(a){e.preventDefault();const h=`#/${a.dataset.navRoute}`;if(location.hash!==h)location.hash=h;else route(true)}},true);
 
 if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").classList.add("on");$("#sb").classList.add("on");$("#app").classList.add("on");mergeExtraModels().then(()=>{route();maybeDrainOnOpen()})}
 })();</script>
