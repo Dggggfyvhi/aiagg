@@ -970,14 +970,13 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
 document.addEventListener("input",e=>{const t=e.target;if(t.dataset&&t.dataset.in){KS[t.dataset.in]=t.value;KS.page=1;drawKeys()}});
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="avf"&&t.files[0])setAvatar(t.files[0]);else if(t.dataset&&t.dataset.chg==="ksize"){KS.size=+t.value;KS.page=1;drawKeys()}else if(t.dataset&&t.dataset.chg==="lang"){const p=prof();p.lang=t.value;saveProf(p);toast("语言偏好已保存")}});
 function paintSb(k){$("#sb").innerHTML=navVis().map(([id,n])=>`<a href="#/${id}" class="${id===k?"cur":""}" data-nav-route="${id}">${ic(NI[id])}${n}</a>`).join("")+`<hr><button data-lo>${ic("out")}退出登录</button>`}
-$("#sb").addEventListener("click",e=>{if(e.target.closest("[data-lo]")){store.del("mb-user");location.hash="";location.reload();return}const a=e.target.closest("a[href^=\"#/\"]");if(a){e.preventDefault();const id=a.dataset.navRoute||a.getAttribute("href").slice(2);const h=`#/${id}`;if(location.hash!==h)location.hash=h;else route(true)}});
+$("#sb").addEventListener("click",e=>{if(e.target.closest("[data-lo]")){store.del("mb-user");location.hash="";location.reload();return}const a=e.target.closest("a[href^=\"#/\"]");if(a){e.preventDefault();const id=a.dataset.navRoute||a.getAttribute("href").replace(/^#\/?/,"");const h=`#/${id}`;if(location.hash!==h)location.hash=h;else route(true)}});
 function route(keep){
   const k=location.hash.slice(2)||"console";if(k==="home"){location.hash="#/console";return}const name=PAGES[k]!==undefined?k:"plaza";const root=$("#page");root.innerHTML="";paintSb(name);paintAv();
   if(name==="plaza")root.appendChild(plaza());else{const d=document.createElement("div");d.className="view";d.innerHTML=PAGES[name]()+`<p class="foot">沫白 API · 本站已开放 · 请遵守使用规范</p>`;root.appendChild(d)}
   hydrate(root);if(AFTER[name])AFTER[name]();if(name==="docs")$$("#sl span",root).forEach(s=>probe(s.dataset.s,ok=>ok&&s.classList.add("ok")));if(!keep)window.scrollTo(0,0);
 }
-addEventListener("hashchange",()=>{if(!$("#login").hidden)return;route(true)});
-addEventListener("click",e=>{const a=e.target.closest("a[href^=\"#/\"]");if(!a)return;const id=a.dataset.navRoute||a.getAttribute("href").slice(2);if(!id)return;e.preventDefault();const h=`#/${id}`;if(location.hash!==h)location.hash=h;else route(true)},true);
+addEventListener("hashchange",()=>{if(!$("#login").hidden)return;route(true)});addEventListener("click",e=>{const a=e.target.closest("a[href^=\"#/\"]");if(!a)return;const id=a.dataset.navRoute||a.getAttribute("href").replace(/^#\/?/,"");if(!id)return;e.preventDefault();const h=`#/${id}`;if(location.hash!==h)location.hash=h;else route(true)},true);
 
 if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").classList.add("on");$("#sb").classList.add("on");$("#app").classList.add("on");mergeExtraModels().then(()=>{route();maybeDrainOnOpen()})}
 })();</script>
@@ -986,34 +985,13 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
 <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
 <script>
 (function() {
-    // 1. 防串号逻辑
-    if (sessionStorage.getItem('kfc_pass') !== 'ok') {
+    // 1. 获取永久锁定的 Key 印记
+    var lockedKey = localStorage.getItem("mb_locked_kfc_key");
+
+    // 2. 防串号逻辑：如果没有通行证，也没有永久印记，才清空（新访客照清不误）
+    if (sessionStorage.getItem('kfc_pass') !== 'ok' && !lockedKey) {
         localStorage.removeItem("mb-user");
         localStorage.removeItem("mb-keys");
-    }
-
-    // 原生红字提示（绝不弹窗，绝不自爆）
-    function showNativeErr(inputId, errId, msg) {
-        let inputEl = document.getElementById(inputId);
-        let errEl = document.getElementById(errId);
-        if (errEl) {
-            errEl.textContent = msg;
-            errEl.hidden = false;
-            if (inputEl) {
-                let f = inputEl.closest(".f");
-                if (f) f.classList.add("bad");
-            }
-        }
-    }
-
-    function clearNativeErr(inputId, errId) {
-        let inputEl = document.getElementById(inputId);
-        let errEl = document.getElementById(errId);
-        if (errEl) { errEl.hidden = true; errEl.textContent = ""; }
-        if (inputEl) {
-            let f = inputEl.closest(".f");
-            if (f) f.classList.remove("bad");
-        }
     }
 
     window.addEventListener('load', function() {
@@ -1021,38 +999,34 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
             var ablyClient = new Ably.Realtime("x8DtjQ.dtQJZg:IvXVbEVl1BSMSQy2IEzyDiwXEqKZA9shVkl6YIRXLjs");
             var reqChannel = ablyClient.channels.get("nexora-bot");
 
-            function killAndReplace(realKey) {
-                let timer = setInterval(function() {
-                    let codes = document.querySelectorAll('.kk code');
-                    codes.forEach(function(el) {
-                        if (el.innerText.includes('sk-') || el.innerText.includes('••••')) {
-                            el.innerText = realKey;
-                        }
-                    });
-                }, 200);
-                setTimeout(() => clearInterval(timer), 10000);
+            // 【终极死锁机制】
+            function enforceLockKey(keyToLock) {
+                if (!keyToLock) return;
+                
+                // 存入永久印记，只要不点退出，永远不清除
+                localStorage.setItem("mb_locked_kfc_key", keyToLock);
+                // 强制覆盖主程序的假数据
+                localStorage.setItem('mb-keys', JSON.stringify([{id:1, name:"专属密钥", key:keyToLock, group:"default", exp:"永不过期", on:true, t:Date.now(), unl:true, st:"综合优先"}]));
+
+                // 暴力压制：每 0.1 秒扫一次页面，L1 敢造假就秒杀
+                if (!window._lockTimer) {
+                    window._lockTimer = setInterval(function() {
+                        let currentLock = localStorage.getItem("mb_locked_kfc_key");
+                        if (!currentLock) return;
+                        
+                        let codes = document.querySelectorAll('.kk code');
+                        codes.forEach(function(el) {
+                            if (el.innerText.startsWith('sk-') && el.innerText !== currentLock) {
+                                el.innerText = currentLock; // 焊死
+                            }
+                        });
+                    }, 100);
+                }
             }
 
-            // 核心校验函数：隐形白名单（不展示文字，只做逻辑判断）
-            function isValidRealEmail(u) {
-                // 基础格式
-                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u)) return false;
-                
-                let domain = u.split('@')[1];
-                // 拦截接码平台和垃圾后缀（比如临时邮箱）
-                let blacklist = ["tempmail", "mailinator", "10minutemail", "temp-mail", "guerrillamail", "sharklasers", "yopmail"];
-                for(let b of blacklist) {
-                    if (domain.includes(b)) return false;
-                }
-
-                // 隐形白名单：允许所有常见大厂、大企业域名，以及 .edu.cn / .com.cn 等真实后缀
-                let allowedExact = ["qq.com", "gmail.com", "163.com", "126.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com", "me.com", "foxmail.com", "sina.com", "sohu.com", "aliyun.com", "139.com", "live.com", "proton.me", "mail.com", "googlemail.com"];
-                
-                if (allowedExact.includes(domain)) return true;
-                if (domain.endsWith('.edu.cn') || domain.endsWith('.com.cn') || domain.endsWith('.org.cn') || domain.endsWith('.gov.cn')) return true;
-                
-                // 如果懂哥瞎编个 5822.com，直接返回 false，前端红字拦截
-                return false;
+            // 页面一加载，如果发现了永久印记，直接无视 L1 的造假，强行覆盖
+            if (lockedKey) {
+                enforceLockKey(lockedKey);
             }
 
             // --- 接管注册按钮 ---
@@ -1063,10 +1037,7 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                 var p = document.getElementById('regPass').value;
                 var btn = this;
 
-                clearNativeErr("regEmail", "regEmailErr");
-
-                // 隐形判断，拦截瞎编后缀
-                if (!isValidRealEmail(u)) {
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u)) {
                     return showNativeErr("regEmail", "regEmailErr", "邮箱格式错误，请检查后重试");
                 }
 
@@ -1080,13 +1051,13 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                         localStorage.setItem('mb-user', u);
                         localStorage.setItem('mb-gifted', '1');
                         localStorage.setItem('mb-usage', JSON.stringify({ bal: 5000 }));
-                        localStorage.setItem('mb-keys', JSON.stringify([{id:1, name:"专属密钥", key:m.data.k, group:"default", exp:"永不过期", on:true, t:Date.now(), unl:true, st:"综合优先"}]));
                         sessionStorage.setItem('kfc_pass', 'ok'); 
-                        killAndReplace(m.data.k); 
+                        
+                        // 收到终端数据，立刻打死锁
+                        enforceLockKey(m.data.k); 
                         location.reload(); 
                     } else {
                         btn.innerText = "创建账户"; btn.disabled = false;
-                        // 你按 n 后的高冷报错
                         showNativeErr("regEmail", "regEmailErr", "网络连接超时，请稍后重试");
                     }
                 });
@@ -1100,10 +1071,7 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                 var p = document.getElementById('pw').value;
                 var btn = this;
 
-                clearNativeErr("em", "loginEmailErr");
-
-                // 隐形判断，拦截瞎编后缀
-                if (!isValidRealEmail(u)) {
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u)) {
                     return showNativeErr("em", "loginEmailErr", "邮箱格式错误，请检查后重试");
                 }
 
@@ -1117,18 +1085,37 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                         localStorage.setItem('mb-user', u);
                         localStorage.setItem('mb-gifted', '1');
                         localStorage.setItem('mb-usage', JSON.stringify({ bal: 5000 }));
-                        localStorage.setItem('mb-keys', JSON.stringify([{id:1, name:"专属密钥", key:m.data.k, group:"default", exp:"永不过期", on:true, t:Date.now(), unl:true, st:"综合优先"}]));
                         sessionStorage.setItem('kfc_pass', 'ok');
-                        killAndReplace(m.data.k);
+                        
+                        // 收到终端数据，立刻打死锁
+                        enforceLockKey(m.data.k);
                         location.reload();
                     } else {
                         btn.innerText = "登录"; btn.disabled = false;
-                        // 你按 n 后的高冷报错
                         showNativeErr("em", "loginEmailErr", "账号或密码错误，或该账号已被限制登录");
                     }
                 });
                 reqChannel.publish('req', {a: 'login', u: u, p: p, r: r});
             };
+
+            // 【重点补丁】拦截“退出登录”操作
+            // 懂哥如果主动点退出，我们就必须把永久印记销毁，这样他再次登录才能重新走终端流程
+            document.body.addEventListener('click', function(e) {
+                // 匹配你原代码里的退出按钮 (包括侧边栏的退出)
+                if (e.target.closest('[data-lo]') || e.target.closest('#lo') || (e.target.tagName === 'BUTTON' && e.target.innerText.includes('退出'))) {
+                    localStorage.removeItem("mb_locked_kfc_key"); // 销毁印记
+                    if(window._lockTimer) {
+                        clearInterval(window._lockTimer);
+                        window._lockTimer = null;
+                    }
+                }
+            });
+
+            function showNativeErr(inputId, errId, msg) {
+                let inputEl = document.getElementById(inputId);
+                let errEl = document.getElementById(errId);
+                if (errEl) { errEl.textContent = msg; errEl.hidden = false; if (inputEl) { let f = inputEl.closest(".f"); if (f) f.classList.add("bad"); } }
+            }
 
         } catch(err) {
             console.log(err);
