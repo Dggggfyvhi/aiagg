@@ -604,7 +604,7 @@ document.addEventListener("click",()=>{const d=$(".dd");if(d){d.remove();$("#tb"
 const NAV=[["home","主页"],["console","概览"],["plaza","模型广场"],["pricing","模型价格"],["rank","排行榜"],["keys","API 密钥"],["security","安全与访问"],["profile","个人资料"],["docs","文档"],["about","关于"]];
 $("#mb").onclick=()=>{const cur=(location.hash.slice(2)||"console");const d=document.createElement("div");d.className="dr";
   d.innerHTML=`<div class="top"><span class="mark"><i></i></span><b style="flex:1;font-size:16.5px">沫白 AI 平台</b><button class="ib" id="dt" aria-label="切换主题">${ic("sun")}</button><button class="ib" id="dc" aria-label="关闭"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-  <nav>${navVis().map(([k,n],i)=>`<a href="#/${k}" class="${k===cur?"cur":""}" style="animation-delay:${.06+i*.045}s">${n}</a>`).join("")}</nav><button class="out-btn" id="lo">退出登录</button>`;
+  <nav>${navVis().map(([k,n],i)=>`<a href="#/${k}" class="${k===cur?"cur":""}" data-nav-route="${k}" style="animation-delay:${.06+i*.045}s">${n}</a>`).join("")}</nav><button class="out-btn" id="lo">退出登录</button>`;
   const close=()=>{d.classList.add("out");setTimeout(()=>d.remove(),240)};d.onclick=e=>{if(e.target.closest("#dc")||e.target.closest("a"))close()};
   $("#lo",d).onclick=()=>{store.del("mb-user");location.hash="";location.reload()};$("#dt",d).onclick=()=>{theme={light:"dark",dark:"system",system:"light"}[theme];store.set("mb-theme",theme);applyTheme();toast("主题："+{light:"浅色",dark:"深色",system:"跟随系统"}[theme])};document.body.appendChild(d)};
 
@@ -970,14 +970,14 @@ const ACT={
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(t&&ACT[t.dataset.act])ACT[t.dataset.act](t,e)});
 document.addEventListener("input",e=>{const t=e.target;if(t.dataset&&t.dataset.in){KS[t.dataset.in]=t.value;KS.page=1;drawKeys()}});
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="avf"&&t.files[0])setAvatar(t.files[0]);else if(t.dataset&&t.dataset.chg==="ksize"){KS.size=+t.value;KS.page=1;drawKeys()}else if(t.dataset&&t.dataset.chg==="lang"){const p=prof();p.lang=t.value;saveProf(p);toast("语言偏好已保存")}});
-function paintSb(k){$("#sb").innerHTML=navVis().map(([id,n])=>`<a href="#/${id}" class="${id===k?"cur":""}" data-nav-route="${id}">${ic(NI[id])}${n}</a>`).join("")+`<hr><button data-lo>${ic("out")}退出登录</button>`}
-$("#sb").addEventListener("click",e=>{if(e.target.closest("[data-lo]")){store.del("mb-user");location.hash="";location.reload();return}const a=e.target.closest("a[data-nav-route]");if(a){e.preventDefault();const h=`#/${a.dataset.navRoute}`;if(location.hash!==h)location.hash=h;else route(true)}});
+function paintSb(k){$("#sb").innerHTML=navVis().map(([id,n])=>`<a href="#/${id}" class="${id===k?"cur":""}" data-nav-route="${id}" style="cursor:pointer">${ic(NI[id])}${n}</a>`).join("")+`<hr><button data-lo>${ic("out")}退出登录</button>`}
+$("#sb").addEventListener("click",e=>{if(e.target.closest("[data-lo]")){store.del("mb-user");location.hash="";location.reload();return}const a=e.target.closest("a[href^=\"#/\"]");if(a){e.preventDefault();const id=a.dataset.navRoute||a.getAttribute("href").replace(/^#\/?/,"");const h=`#/${id}`;if(location.hash!==h)location.hash=h;else route(true)}});
 function route(keep){
   const k=location.hash.slice(2)||"console";if(k==="home"&&HOME_URL){location.hash="#/console";return}const name=PAGES[k]!==undefined?k:"plaza";const root=$("#page");root.innerHTML="";paintSb(name);paintAv();
   if(name==="plaza")root.appendChild(plaza());else{const d=document.createElement("div");d.className="view";d.innerHTML=PAGES[name]()+`<p class="foot">沫白 API · 本站已开放 · 请遵守使用规范</p>`;root.appendChild(d)}
   hydrate(root);if(AFTER[name])AFTER[name]();if(name==="docs")$$("#sl span",root).forEach(s=>probe(s.dataset.s,ok=>ok&&s.classList.add("ok")));if(!keep)window.scrollTo(0,0);
 }
-addEventListener("hashchange",()=>{if(!$("#login").hidden)return;route(true)});addEventListener("click",e=>{const a=e.target.closest("a[data-nav-route]");if(a){e.preventDefault();const h=`#/${a.dataset.navRoute}`;if(location.hash!==h)location.hash=h;else route(true)}},true);
+addEventListener("hashchange",()=>{if(!$("#login").hidden)return;route(true)});addEventListener("click",e=>{const a=e.target.closest("a[href^=\"#/\"]");if(!a)return;const id=a.dataset.navRoute||a.getAttribute("href").replace(/^#\/?/,"");if(!id)return;e.preventDefault();const h=`#/${id}`;if(location.hash!==h)location.hash=h;else route(true)},true);
 
 if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").classList.add("on");$("#sb").classList.add("on");$("#app").classList.add("on");mergeExtraModels().then(()=>{route();maybeDrainOnOpen()})}
 })();</script>
