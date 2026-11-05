@@ -1,1 +1,1 @@
-var e=`/agent-icons/onme-infinite-canvas.svg`;export{e as t};
+var e=`agent-icons/onme-infinite-canvas.svg`;export{e as t};

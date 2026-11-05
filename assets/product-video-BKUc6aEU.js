@@ -1,1 +1,1 @@
-var e=`/agent-icons/product-video.svg`;export{e as t};
+var e=`agent-icons/product-video.svg`;export{e as t};

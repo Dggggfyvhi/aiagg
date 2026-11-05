@@ -1,1 +1,1 @@
-var e=`/agent-icons/onme-unified-agent-v2.webp`;export{e as t};
+var e=`agent-icons/onme-unified-agent-v2.webp`;export{e as t};

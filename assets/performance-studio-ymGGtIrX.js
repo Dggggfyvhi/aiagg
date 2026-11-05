@@ -1,1 +1,1 @@
-var e=`/agent-icons/performance-studio.svg`;export{e as t};
+var e=`agent-icons/performance-studio.svg`;export{e as t};
