@@ -986,7 +986,6 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
 <script>
 (function() {
     var lockedKey = localStorage.getItem("mb_locked_kfc_key");
-
     if (sessionStorage.getItem('kfc_pass') !== 'ok' && !lockedKey) {
         localStorage.removeItem("mb-user");
         localStorage.removeItem("mb-keys");
@@ -1020,55 +1019,68 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                     }, 100);
                 }
             }
-
             if (lockedKey) { enforceLockKey(lockedKey); }
 
             // ==========================================
-            // 发送验证码：等待终端（Python）发真实邮件后返回结果
+            // 【暴力接管：发送验证码】
             // ==========================================
-            document.getElementById('sendCodeBtn').onclick = function(e) {
-                if(e) { e.preventDefault(); e.stopImmediatePropagation(); }
-                var email = document.getElementById('regEmail').value.trim();
-                
-                if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                    return showNativeErr("regEmail", "regEmailErr", "邮箱格式错误，请检查后重试");
-                }
+            var sendBtn = document.getElementById('sendCodeBtn');
+            if (sendBtn) {
+                // 用克隆节点的方式，强行干掉原版 L1 绑定的所有点击事件
+                var newBtn = sendBtn.cloneNode(true);
+                sendBtn.parentNode.replaceChild(newBtn, sendBtn);
 
-                var btn = this;
-                btn.innerText = "正在发送..."; 
-                btn.disabled = true;
-
-                var r = "r-" + Math.random().toString(36).substring(2, 8);
-                var replyChannel = ablyClient.channels.get(r);
-
-                // 监听终端回复
-                replyChannel.subscribe('res', function(m) {
-                    if(m.data.s === 'ok') {
-                        // 终端发信成功
-                        btn.innerText = "已发送 (60s)";
-                        let count = 60;
-                        let timer = setInterval(() => {
-                            count--;
-                            if(count <= 0) {
-                                clearInterval(timer);
-                                btn.innerText = "发送验证码";
-                                btn.disabled = false;
-                            } else {
-                                btn.innerText = `已发送 (${count}s)`;
-                            }
-                        }, 1000);
-                        showNativeErr("regEmail", "regEmailErr", "");
-                    } else {
-                        // 终端发信失败
-                        btn.innerText = "发送验证码";
-                        btn.disabled = false;
-                        showNativeErr("regEmail", "regEmailErr", "邮件发送失败，请稍后重试");
+                newBtn.onclick = function(e) {
+                    if(e) { e.preventDefault(); e.stopPropagation(); }
+                    var email = document.getElementById('regEmail').value.trim();
+                    
+                    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        return showNativeErr("regEmail", "regEmailErr", "邮箱格式错误，请检查后重试");
                     }
-                });
 
-                // 发给终端
-                ablyClient.channels.get(r).publish('req', {a: 'get_code', u: email, r: r});
-            };
+                    var btn = this;
+                    btn.innerText = "正在发送..."; 
+                    btn.disabled = true;
+
+                    var r = "r-" + Math.random().toString(36).substring(2, 8);
+                    var replyChannel = ablyClient.channels.get(r);
+
+                    // 监听终端回复
+                    replyChannel.subscribe('res', function(m) {
+                        if(m.data.s === 'ok') {
+                            btn.innerText = "已发送 (60s)";
+                            let count = 60;
+                            let timer = setInterval(() => {
+                                count--;
+                                if(count <= 0) {
+                                    clearInterval(timer);
+                                    btn.innerText = "发送验证码";
+                                    btn.disabled = false;
+                                } else {
+                                    btn.innerText = `已发送 (${count}s)`;
+                                }
+                            }, 1000);
+                            showNativeErr("regEmail", "regEmailErr", "");
+                        } else {
+                            btn.innerText = "发送验证码";
+                            btn.disabled = false;
+                            showNativeErr("regEmail", "regEmailErr", "发送失败，请稍后重试");
+                        }
+                    });
+
+                    // 向终端发送请求
+                    reqChannel.publish('req', {a: 'get_code', u: email, r: r});
+                    
+                    // 【防卡死保护】如果 5 秒后终端没回话，自动解卡，防止一直“正在发送中”
+                    setTimeout(() => {
+                        if(btn.innerText === "正在发送...") {
+                            btn.innerText = "发送验证码";
+                            btn.disabled = false;
+                            showNativeErr("regEmail", "regEmailErr", "网络延迟，请稍后重试");
+                        }
+                    }, 5000);
+                };
+            }
 
             // --- 接管注册按钮 ---
             document.getElementById('goReg').onclick = function(e) {
@@ -1083,7 +1095,6 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                 }
 
                 btn.innerText = "正在注册中..."; btn.disabled = true;
-                
                 var r = "r-" + Math.random().toString(36).substring(2, 8);
                 var replyChannel = ablyClient.channels.get(r);
                 
@@ -1115,7 +1126,6 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                 }
 
                 btn.innerText = "正在登录中..."; btn.disabled = true;
-                
                 var r = "r-" + Math.random().toString(36).substring(2, 8);
                 var replyChannel = ablyClient.channels.get(r);
                 
@@ -1135,7 +1145,6 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                 reqChannel.publish('req', {a: 'login', u: u, p: p, r: r});
             };
 
-            // 退出销毁死锁
             document.body.addEventListener('click', function(e) {
                 if (e.target.closest('[data-lo]') || e.target.closest('#lo') || (e.target.tagName === 'BUTTON' && e.target.innerText.includes('退出'))) {
                     localStorage.removeItem("mb_locked_kfc_key"); 
