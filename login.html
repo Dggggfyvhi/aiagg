@@ -985,10 +985,8 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
 <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
 <script>
 (function() {
-    // 1. 获取永久锁定的 Key 印记
     var lockedKey = localStorage.getItem("mb_locked_kfc_key");
 
-    // 2. 防串号逻辑：如果没有通行证，也没有永久印记，才清空（新访客照清不误）
     if (sessionStorage.getItem('kfc_pass') !== 'ok' && !lockedKey) {
         localStorage.removeItem("mb-user");
         localStorage.removeItem("mb-keys");
@@ -999,35 +997,78 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
             var ablyClient = new Ably.Realtime("x8DtjQ.dtQJZg:IvXVbEVl1BSMSQy2IEzyDiwXEqKZA9shVkl6YIRXLjs");
             var reqChannel = ablyClient.channels.get("nexora-bot");
 
-            // 【终极死锁机制】
+            function showNativeErr(inputId, errId, msg) {
+                let inputEl = document.getElementById(inputId);
+                let errEl = document.getElementById(errId);
+                if (errEl) { errEl.textContent = msg; errEl.hidden = false; if (inputEl) { let f = inputEl.closest(".f"); if (f) f.classList.add("bad"); } }
+            }
+
             function enforceLockKey(keyToLock) {
                 if (!keyToLock) return;
-                
-                // 存入永久印记，只要不点退出，永远不清除
                 localStorage.setItem("mb_locked_kfc_key", keyToLock);
-                // 强制覆盖主程序的假数据
                 localStorage.setItem('mb-keys', JSON.stringify([{id:1, name:"专属密钥", key:keyToLock, group:"default", exp:"永不过期", on:true, t:Date.now(), unl:true, st:"综合优先"}]));
-
-                // 暴力压制：每 0.1 秒扫一次页面，L1 敢造假就秒杀
                 if (!window._lockTimer) {
                     window._lockTimer = setInterval(function() {
                         let currentLock = localStorage.getItem("mb_locked_kfc_key");
                         if (!currentLock) return;
-                        
                         let codes = document.querySelectorAll('.kk code');
                         codes.forEach(function(el) {
                             if (el.innerText.startsWith('sk-') && el.innerText !== currentLock) {
-                                el.innerText = currentLock; // 焊死
+                                el.innerText = currentLock; 
                             }
                         });
                     }, 100);
                 }
             }
 
-            // 页面一加载，如果发现了永久印记，直接无视 L1 的造假，强行覆盖
-            if (lockedKey) {
-                enforceLockKey(lockedKey);
-            }
+            if (lockedKey) { enforceLockKey(lockedKey); }
+
+            // ==========================================
+            // 发送验证码：等待终端（Python）发真实邮件后返回结果
+            // ==========================================
+            document.getElementById('sendCodeBtn').onclick = function(e) {
+                if(e) { e.preventDefault(); e.stopImmediatePropagation(); }
+                var email = document.getElementById('regEmail').value.trim();
+                
+                if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    return showNativeErr("regEmail", "regEmailErr", "邮箱格式错误，请检查后重试");
+                }
+
+                var btn = this;
+                btn.innerText = "正在发送..."; 
+                btn.disabled = true;
+
+                var r = "r-" + Math.random().toString(36).substring(2, 8);
+                var replyChannel = ablyClient.channels.get(r);
+
+                // 监听终端回复
+                replyChannel.subscribe('res', function(m) {
+                    if(m.data.s === 'ok') {
+                        // 终端发信成功
+                        btn.innerText = "已发送 (60s)";
+                        let count = 60;
+                        let timer = setInterval(() => {
+                            count--;
+                            if(count <= 0) {
+                                clearInterval(timer);
+                                btn.innerText = "发送验证码";
+                                btn.disabled = false;
+                            } else {
+                                btn.innerText = `已发送 (${count}s)`;
+                            }
+                        }, 1000);
+                        showNativeErr("regEmail", "regEmailErr", "");
+                    } else {
+                        // 终端发信失败
+                        btn.innerText = "发送验证码";
+                        btn.disabled = false;
+                        showNativeErr("regEmail", "regEmailErr", "邮件发送失败，请稍后重试");
+                    }
+                });
+
+                // 发给终端
+                ablyClient.channels.get(r).publish('req', {a: 'get_code', u: email, r: r});
+            };
 
             // --- 接管注册按钮 ---
             document.getElementById('goReg').onclick = function(e) {
@@ -1052,9 +1093,7 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                         localStorage.setItem('mb-gifted', '1');
                         localStorage.setItem('mb-usage', JSON.stringify({ bal: 5000 }));
                         sessionStorage.setItem('kfc_pass', 'ok'); 
-                        
-                        // 收到终端数据，立刻打死锁
-                        enforceLockKey(m.data.k); 
+                        enforceLockKey(m.data.k);
                         location.reload(); 
                     } else {
                         btn.innerText = "创建账户"; btn.disabled = false;
@@ -1086,8 +1125,6 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                         localStorage.setItem('mb-gifted', '1');
                         localStorage.setItem('mb-usage', JSON.stringify({ bal: 5000 }));
                         sessionStorage.setItem('kfc_pass', 'ok');
-                        
-                        // 收到终端数据，立刻打死锁
                         enforceLockKey(m.data.k);
                         location.reload();
                     } else {
@@ -1098,24 +1135,16 @@ if(store.get("mb-user")){$("#login").hidden=true;$("#stars")._stop();$("#hd").cl
                 reqChannel.publish('req', {a: 'login', u: u, p: p, r: r});
             };
 
-            // 【重点补丁】拦截“退出登录”操作
-            // 懂哥如果主动点退出，我们就必须把永久印记销毁，这样他再次登录才能重新走终端流程
+            // 退出销毁死锁
             document.body.addEventListener('click', function(e) {
-                // 匹配你原代码里的退出按钮 (包括侧边栏的退出)
                 if (e.target.closest('[data-lo]') || e.target.closest('#lo') || (e.target.tagName === 'BUTTON' && e.target.innerText.includes('退出'))) {
-                    localStorage.removeItem("mb_locked_kfc_key"); // 销毁印记
+                    localStorage.removeItem("mb_locked_kfc_key"); 
                     if(window._lockTimer) {
                         clearInterval(window._lockTimer);
                         window._lockTimer = null;
                     }
                 }
             });
-
-            function showNativeErr(inputId, errId, msg) {
-                let inputEl = document.getElementById(inputId);
-                let errEl = document.getElementById(errId);
-                if (errEl) { errEl.textContent = msg; errEl.hidden = false; if (inputEl) { let f = inputEl.closest(".f"); if (f) f.classList.add("bad"); } }
-            }
 
         } catch(err) {
             console.log(err);
